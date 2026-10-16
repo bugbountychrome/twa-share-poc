@@ -1,73 +1,71 @@
-<!doctype html>
-<html lang="id">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TWA Share Target Regression Test</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#171717">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Save As File Dialog</title>
   <style>
     body {
-      font: 16px system-ui, sans-serif;
-      max-width: 680px;
-      margin: 40px auto;
-      padding: 0 18px;
-      background: #111;
-      color: #eee;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    section {
-      padding: 18px;
-      border: 1px solid #444;
-      border-radius: 12px;
-      margin: 18px 0;
+
+    #saveButton {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
     }
-    button, input {
-      font: inherit;
-      margin-top: 10px;
+
+    #saveButton:hover {
+      background-color: #0056b3;
     }
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+
+    #result {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #333;
     }
   </style>
-</head>
-<body>
-  <h1>TWA Share Target Test</h1>
-  <p>Test page for benign synthetic files and share metadata.</p>
-
-  <section>
-    <h2>Local file metadata test</h2>
-    <input id="files" type="file" multiple>
-    <button id="inspect">Inspect selected files</button>
-    <pre id="output">No files selected.</pre>
-  </section>
-
-  <section>
-    <h2>Share endpoint status</h2>
-    <p id="status">This static GitHub Pages site does not process POST requests.</p>
-  </section>
-
   <script>
-    const input = document.querySelector("#files");
-    const output = document.querySelector("#output");
+    function handleSaveAs() {
+      // Define the file content and filename
+      const fileContent = "This is the content of the fake.pdf file.";
+      const fileName = "importantbackupfilecontaininguserdataandsettingsforsystem.apk__________________________________________________________From https∶⧸⧸google.com";
 
-    document.querySelector("#inspect").addEventListener("click", () => {
-      output.textContent = JSON.stringify(
-        Array.from(input.files, file => ({
-          name: file.name,
-          type: file.type || "(unknown)",
-          size: file.size
-        })),
-        null,
-        2
-      );
-    });
+      // Create a Blob object with the file content
+      const blob = new Blob([fileContent], { type: "application/pdf" });
 
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        // No service worker is required for this metadata-only test.
-      });
+      // Create an object URL for the blob
+      const url = URL.createObjectURL(blob);
+
+      // Create an <a> element to trigger the download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName; // Specify the file name for download
+
+      // Append the <a> element to the document, trigger the click, and remove it
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Revoke the object URL to free memory
+      URL.revokeObjectURL(url);
+
+      // Display a success message
+      document.getElementById("result").innerText = `File saved as ${fileName}.`;
     }
   </script>
+</head>
+<body>
+  <button id="saveButton" onclick="handleSaveAs()">Select Save As File</button>
+  <div id="result">Click the button to save the file as fake.pdf.</div>
 </body>
 </html>
