@@ -1,52 +1,125 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Firefox Permission Regression Test</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firefox Android Named-Tab Permission Test</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      color: #202124;
+    }
+
+    main {
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+      box-sizing: border-box;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 16px #00000012;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 6px;
+      background: #188038;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #log {
+      margin-top: 20px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
 </head>
+
 <body>
-  <h3>Firefox Android Permission Test</h3>
-  <p>Open Google, then test the camera and microphone prompt.</p>
-  <button id="start">Start test</button>
-  <pre id="status">Ready</pre>
+  <main>
+    <h2>Named-Tab Permission Test</h2>
+
+    <p>
+      This test checks camera and microphone permission behavior
+      during named browsing-context navigation.
+    </p>
+
+    <button id="start">Start Test</button>
+    <div id="log" aria-live="polite">Ready to test.</div>
+  </main>
 
   <script>
-    const status = document.getElementById("status");
+    const log = document.getElementById("log");
+
+    function record(message) {
+      const time = new Date().toLocaleTimeString();
+      log.textContent += `\n[${time}] ${message}`;
+    }
+
+    document.getElementById("start").addEventListener("click", () => {
+      log.textContent = "Test started.";
+
+      // Step 1: Open Google in a named browsing context.
+      const tab = window.open(
+        "https://accounts.google.com",
+        "permission-test"
+      );
+
+      if (!tab) {
+        record("The browser blocked the new tab.");
+        return;
+      }
+
+      record("Requested Google in named browsing context.");
+
+      // Step 2: Navigate the same context to this test page.
+      setTimeout(() => {
+        record("Requesting navigation to the permission test.");
+
+        window.open(
+          location.origin + location.pathname + "?stage=permission",
+          "permission-test"
+        );
+
+        record("Second navigation request issued.");
+        record("Observe the address bar and permission prompt.");
+      }, 5000);
+    });
+
+    // Step 3: On the test page, request the real browser permission.
     const params = new URLSearchParams(location.search);
 
     if (params.get("stage") === "permission") {
-      status.textContent = "Requesting camera and microphone...";
+      record("Requesting camera and microphone permission.");
 
       navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true
       }).then(stream => {
+        record("Permission granted; stopping media tracks.");
         stream.getTracks().forEach(track => track.stop());
-        status.textContent = "Permission granted; tracks stopped.";
       }).catch(error => {
-        status.textContent = error.name + ": " + error.message;
+        record("Permission request result: " +
+          error.name + ": " + error.message);
       });
-
-      setTimeout(() => {
-        location.replace("https://www.google.com/");
-      }, 2500);
     }
-
-    document.getElementById("start").onclick = () => {
-      const target = window.open("https://www.google.com/", "permissionTest");
-
-      if (!target) {
-        status.textContent = "Popup blocked. Allow popups for this test.";
-        return;
-      }
-
-      status.textContent = "Google opened; preparing permission test.";
-
-      setTimeout(() => {
-        target.location.href =
-          location.origin + location.pathname + "?stage=permission";
-      }, 3000);
-    };
   </script>
 </body>
 </html>
