@@ -1,71 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Save As File Dialog</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #saveButton {
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    #saveButton:hover {
-      background-color: #0056b3;
-    }
-
-    #result {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #333;
-    }
-  </style>
-  <script>
-    function handleSaveAs() {
-      // Define the file content and filename
-      const fileContent = "This is the content of the fake.pdf file.";
-      const fileName = "google.com.driveapkgooglewebsite.googlewebsie.google.com.apk__________________________________________________________From https∶⧸⧸google.com";
-
-      // Create a Blob object with the file content
-      const blob = new Blob([fileContent], { type: "application/pdf" });
-
-      // Create an object URL for the blob
-      const url = URL.createObjectURL(blob);
-
-      // Create an <a> element to trigger the download
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName; // Specify the file name for download
-
-      // Append the <a> element to the document, trigger the click, and remove it
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      // Revoke the object URL to free memory
-      URL.revokeObjectURL(url);
-
-      // Display a success message
-      document.getElementById("result").innerText = `File saved as ${fileName}.`;
-    }
-  </script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Firefox Permission Regression Test</title>
 </head>
 <body>
-  <button id="saveButton" onclick="handleSaveAs()">Select Save As File</button>
-  <div id="result">Click the button to save the file as fake.pdf.</div>
+  <h3>Firefox Android Permission Test</h3>
+  <p>Open Google, then test the camera and microphone prompt.</p>
+  <button id="start">Start test</button>
+  <pre id="status">Ready</pre>
+
+  <script>
+    const status = document.getElementById("status");
+    const params = new URLSearchParams(location.search);
+
+    if (params.get("stage") === "permission") {
+      status.textContent = "Requesting camera and microphone...";
+
+      navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      }).then(stream => {
+        stream.getTracks().forEach(track => track.stop());
+        status.textContent = "Permission granted; tracks stopped.";
+      }).catch(error => {
+        status.textContent = error.name + ": " + error.message;
+      });
+
+      setTimeout(() => {
+        location.replace("https://www.google.com/");
+      }, 2500);
+    }
+
+    document.getElementById("start").onclick = () => {
+      const target = window.open("https://www.google.com/", "permissionTest");
+
+      if (!target) {
+        status.textContent = "Popup blocked. Allow popups for this test.";
+        return;
+      }
+
+      status.textContent = "Google opened; preparing permission test.";
+
+      setTimeout(() => {
+        target.location.href =
+          location.origin + location.pathname + "?stage=permission";
+      }, 3000);
+    };
+  </script>
 </body>
 </html>
