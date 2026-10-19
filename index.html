@@ -1,35 +1,38 @@
 <!doctype html>
 <html lang="id">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clipboard Security Test</title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cross-Origin iframe test</title>
+</head>
+<body>
+  <h3>Origin B — SOP Test</h3>
+  <p>Pengujian akses iframe lintas-origin.</p>
 
-<h3>Edge Clipboard Security Test</h3>
-<p>Salin teks unik ini: <code>EDGE_HTTPS_TEST_58264</code></p>
-<button id="read">Baca clipboard</button>
-<pre id="out">Memeriksa akses...</pre>
+  <iframe
+    id="target"
+    src="http://127.0.0.1:8001/login.html"
+    width="350"
+    height="180">
+  </iframe>
 
-<script>
-const out = document.querySelector("#out");
+  <script>
+    const frame = document.getElementById("target");
 
-out.textContent =
-  "Origin: " + location.origin +
-  "\nSecure context: " + isSecureContext +
-  "\nClipboard API: " + !!navigator.clipboard;
+    frame.addEventListener("load", () => {
+      try {
+        const doc = frame.contentWindow.document;
+        const email = doc.querySelector("#email").value;
+        const password = doc.querySelector("#password").value;
 
-async function readClipboard(label) {
-  try {
-    const text = await navigator.clipboard.readText();
-    out.textContent += "\n" + label + ": BERHASIL — " +
-      JSON.stringify(text);
-  } catch (e) {
-    out.textContent += "\n" + label + ": " +
-      e.name + " — " + e.message;
-  }
-}
-
-readClipboard("Otomatis tanpa klik");
-
-document.querySelector("#read").onclick = () =>
-  readClipboard("Setelah klik");
-</script>
+        alert(
+          "Email: " + email +
+          "\nPassword: " + password
+        );
+      } catch (error) {
+        alert("Cross-origin access blocked: " + error.name);
+      }
+    });
+  </script>
+</body>
 </html>
