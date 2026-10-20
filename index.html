@@ -1,70 +1,115 @@
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CCT PostMessage Regression Lab</title>
+  <title>CCT PostMessage Regression Lab — Origin A</title>
   <style>
     body {
       font: 16px system-ui, sans-serif;
       margin: 24px;
-      overflow-wrap: anywhere;
+      color: #111;
     }
-    button { padding: 12px; margin: 8px 0; }
+    #status {
+      padding: 12px;
+      background: #f1f1f1;
+    }
     pre {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      background: #f2f2f2;
+      background: #f5f5f5;
       padding: 12px;
+      min-height: 100px;
+    }
+    button {
+      padding: 10px 14px;
+      margin: 4px;
     }
   </style>
 </head>
 <body>
   <h2>CCT PostMessage Regression Lab — Origin A</h2>
-  <p id="origin"></p>
-  <p id="state">Waiting for a message channel.</p>
+  <p>Origin: <code id="origin"></code></p>
+  <p id="status">Waiting for a message channel.</p>
   <button id="clear">Clear log</button>
+  <button id="ping" disabled>Send test message</button>
   <pre id="log"></pre>
 
   <script>
-    const logEl = document.querySelector("#log");
-    const stateEl = document.querySelector("#state");
+    (() => {
+      const status = document.querySelector("#status");
+      const logBox = document.querySelector("#log");
+      const ping = document.querySelector("#ping");
 
-    function log(message) {
-      logEl.textContent += message + "\n";
-    }
+      document.querySelector("#origin").textContent = location.origin;
 
-    document.querySelector("#origin").textContent =
-      "Origin: " + location.origin;
+      let port = null;
 
-    log("A_READY " + location.origin);
-
-    addEventListener("message", event => {
-      log("WINDOW_MESSAGE origin=" + event.origin +
-          " ports=" + event.ports.length);
-
-      if (event.ports.length === 0) {
-        log("No MessagePort attached.");
-        return;
+      function log(message) {
+        logBox.textContent +=
+          new Date().toISOString() + " " + message + "\n";
       }
 
-      const port = event.ports[0];
-      stateEl.textContent = "MessagePort received.";
+      document.querySelector("#clear").addEventListener("click", () => {
+        logBox.textContent = "";
+      });
 
-      port.onmessage = e => {
-        log("PORT_RECEIVED " + String(e.data));
-      };
+      ping.addEventListener("click", () => {
+        if (!port) {
+          log("No MessagePort available.");
+          return;
+        }
 
-      port.onmessageerror = () => log("PORT_MESSAGE_ERROR");
-      port.start();
-      port.postMessage("HELLO_FROM_A");
-      log("HELLO_FROM_A sent through received port.");
-    });
+        port.postMessage({
+          type: "A_TEST",
+          origin: location.origin,
+          timestamp: Date.now()
+        });
 
-    document.querySelector("#clear").onclick = () => {
-      logEl.textContent = "";
-    };
+        log("Sent A_TEST through MessagePort.");
+      });
+
+      window.addEventListener("message", event => {
+        log(
+          "WINDOW_MESSAGE origin=" + event.origin +
+          " currentOrigin=" + location.origin +
+          " ports=" + event.ports.length +
+          " data=" + JSON.stringify(event.data)
+        );
+
+        if (event.ports.length === 0) {
+          return;
+        }
+
+        if (port) {
+          log("A MessagePort is already attached; ignoring extra port.");
+          return;
+        }
+
+        port = event.ports[0];
+
+        port.onmessage = messageEvent => {
+          log("PORT_MESSAGE " + JSON.stringify(messageEvent.data));
+        };
+
+        port.onmessageerror = () => {
+          log("PORT_MESSAGE_ERROR");
+        };
+
+        port.start();
+        ping.disabled = false;
+        status.textContent = "MessagePort received and started.";
+
+        port.postMessage({
+          type: "A_READY",
+          origin: location.origin
+        });
+
+        log("Port started; sent A_READY.");
+      });
+
+      log("A_READY " + location.origin);
+    })();
   </script>
 </body>
 </html>
