@@ -1,38 +1,70 @@
+
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cross-Origin iframe test</title>
+  <title>CCT PostMessage Regression Lab</title>
+  <style>
+    body {
+      font: 16px system-ui, sans-serif;
+      margin: 24px;
+      overflow-wrap: anywhere;
+    }
+    button { padding: 12px; margin: 8px 0; }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #f2f2f2;
+      padding: 12px;
+    }
+  </style>
 </head>
 <body>
-  <h3>Origin B — SOP Test</h3>
-  <p>Pengujian akses iframe lintas-origin.</p>
-
-  <iframe
-    id="target"
-    src="http://127.0.0.1:8001/login.html"
-    width="350"
-    height="180">
-  </iframe>
+  <h2>CCT PostMessage Regression Lab — Origin A</h2>
+  <p id="origin"></p>
+  <p id="state">Waiting for a message channel.</p>
+  <button id="clear">Clear log</button>
+  <pre id="log"></pre>
 
   <script>
-    const frame = document.getElementById("target");
+    const logEl = document.querySelector("#log");
+    const stateEl = document.querySelector("#state");
 
-    frame.addEventListener("load", () => {
-      try {
-        const doc = frame.contentWindow.document;
-        const email = doc.querySelector("#email").value;
-        const password = doc.querySelector("#password").value;
+    function log(message) {
+      logEl.textContent += message + "\n";
+    }
 
-        alert(
-          "Email: " + email +
-          "\nPassword: " + password
-        );
-      } catch (error) {
-        alert("Cross-origin access blocked: " + error.name);
+    document.querySelector("#origin").textContent =
+      "Origin: " + location.origin;
+
+    log("A_READY " + location.origin);
+
+    addEventListener("message", event => {
+      log("WINDOW_MESSAGE origin=" + event.origin +
+          " ports=" + event.ports.length);
+
+      if (event.ports.length === 0) {
+        log("No MessagePort attached.");
+        return;
       }
+
+      const port = event.ports[0];
+      stateEl.textContent = "MessagePort received.";
+
+      port.onmessage = e => {
+        log("PORT_RECEIVED " + String(e.data));
+      };
+
+      port.onmessageerror = () => log("PORT_MESSAGE_ERROR");
+      port.start();
+      port.postMessage("HELLO_FROM_A");
+      log("HELLO_FROM_A sent through received port.");
     });
+
+    document.querySelector("#clear").onclick = () => {
+      logEl.textContent = "";
+    };
   </script>
 </body>
 </html>
